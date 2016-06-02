@@ -21,10 +21,38 @@ struct {
         ID method_missing;
         ID call;
         ID do_lookup;
+        ID new;
+        ID to_sym;
+        ID __rb_aget;
+
+        ID at__attributes;
 
         ID aget;
     } sym;
-}c;
+} c;
+
+static VALUE
+store_aget(VALUE self, VALUE key) {
+    if(TYPE(key) != T_SYMBOL) {
+        key = rb_funcall(key, c.sym.to_sym, 0);
+        if(TYPE(key) != T_SYMBOL) {
+            return Qnil;
+        }
+    }
+
+    VALUE attributes = rb_attr_get(self, c.sym.at__attributes);
+    if (TYPE(attributes) != T_HASH)
+        return Qnil;
+    VALUE val = rb_hash_lookup2(attributes, key, Qundef);
+    if (val != Qundef) {
+        if (rb_obj_is_kind_of(val, c.Configatron.Proc.mod)) {
+            val = rb_funcall(val, c.sym.call, 0);
+        }
+        return val;
+    }
+
+    return rb_funcall(self, c.sym.__rb_aget, 1, key);
+}
 
 static VALUE
 store_method_missing(int argc, VALUE *argv, VALUE self) {
@@ -34,7 +62,7 @@ store_method_missing(int argc, VALUE *argv, VALUE self) {
         return Qnil;
     }
     if(block != Qnil) {
-        VALUE val = rb_funcall(self, c.sym.aget, 1, id);
+        VALUE val = store_aget(self, id);
         return rb_funcall(block, c.sym.call, 1, val);
     }
     const char *meth = rb_id2name(SYM2ID(id));
@@ -42,7 +70,7 @@ store_method_missing(int argc, VALUE *argv, VALUE self) {
     if(len >=1 && (meth[len-1] == '=' || meth[len-1] == '!')) {
         return rb_funcallv(self, c.sym.do_lookup, argc, argv);
     }
-    return rb_funcall(self, c.sym.aget, 1, id);
+    return store_aget(self, id);
 }
 
 void
@@ -51,10 +79,15 @@ Init_configatron_ext() {
     S(Configatron);
     S(Store);
     S(Proc);
+
     S(method_missing);
     S(call);
     S(do_lookup);
+    S(to_sym);
+    S(__rb_aget);
 #undef S
+
+    c.sym.at__attributes = rb_intern("@attributes");
     c.sym.aget = rb_intern("[]");
 
     c.Configatron.mod = rb_const_get(rb_cObject, c.sym.Configatron);
@@ -64,4 +97,8 @@ Init_configatron_ext() {
     rb_define_method(c.Configatron.Store.mod,
                      "method_missing",
                      store_method_missing, -1);
+    rb_define_alias(c.Configatron.Store.mod, "__rb_aget", "[]");
+    rb_define_method(c.Configatron.Store.mod,
+                     "[]",
+                     store_aget, 1);
 }
