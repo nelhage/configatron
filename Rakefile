@@ -1,5 +1,6 @@
 require 'bundler'
 require 'rake/testtask'
+require 'rake/extensiontask'
 
 Bundler::GemHelper.install_tasks
 
@@ -12,4 +13,7 @@ Rake::TestTask.new do |t|
   end
 end
 
+Rake::ExtensionTask.new "configatron_ext"
+
 task :default => :test
+task :test => :compile

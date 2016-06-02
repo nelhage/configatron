@@ -21,3 +21,5 @@ end
 unless defined?(Configatron::NO_EXT)
   require 'configatron/ext/kernel'
 end
+
+require 'configatron_ext'

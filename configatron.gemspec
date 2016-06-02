@@ -17,8 +17,10 @@ Gem::Specification.new do |gem|
   gem.executables   = gem.files.grep(%r{^bin/}) { |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
+  gem.extensions    = ['ext/configatron_ext/extconf.rb']
 
   gem.add_development_dependency "rake"
+  gem.add_development_dependency "rake-compiler"
   gem.add_development_dependency "mocha"
   gem.add_development_dependency "subprocess"
   gem.add_development_dependency "minitest", '>=5.2.3'
